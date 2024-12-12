@@ -46,7 +46,57 @@ class CMUDecoder:
             '10': 'Frente a la cara, a la altura de la boca.'
         }
 
+    def decode_notation(self, cmu_notation):
+        """Decodifica la notación CMU del diccionario a texto."""
+        try:
+            # Señas predefinidas con su notación CMU
+            señas_predefinidas = {
+                (3, 7, 3): "hoy",
+                (1, 8, 7): "en_la_manana",
+                (3, 3, 10): "tomar",
+                (6, 4, 4): "cafe"
+            }
 
+            # Asegurarse de que cmu_notation sea un diccionario o una tupla
+            if isinstance(cmu_notation, dict):
+                # Convertir el diccionario a tupla
+                tupla_notacion = (
+                    int(cmu_notation.get('configuracion', -1)),
+                    int(cmu_notation.get('movimiento', -1)),
+                    int(cmu_notation.get('ubicacion', -1))
+                )
+            elif isinstance(cmu_notation, tuple):
+                tupla_notacion = cmu_notation
+            else:
+                raise TypeError("cmu_notation debe ser un diccionario o una tupla.")
+
+            # Verificar si la notación es una seña predefinida
+            if tupla_notacion in señas_predefinidas:
+                gesto_predefinido = señas_predefinidas[tupla_notacion]
+                decoded = {
+                    'configuracion': self.configuracion_labels.get(str(tupla_notacion[0]), "Desconocido"),
+                    'movimiento': self.movimiento_labels.get(str(tupla_notacion[1]), "Desconocido"),
+                    'ubicacion': self.ubicacion_labels.get(str(tupla_notacion[2]), "Desconocido"),
+                    'gesto': gesto_predefinido  # Añadir el gesto predefinido
+                }
+                return decoded
+
+            # Si no es una seña predefinida, usar el método original
+            decoded = {
+                'configuracion': self.configuracion_labels.get(str(cmu_notation.get('configuracion', -1)),
+                                                               "Desconocido"),
+                'movimiento': self.movimiento_labels.get(str(cmu_notation.get('movimiento', -1)), "Desconocido"),
+                'ubicacion': self.ubicacion_labels.get(str(cmu_notation.get('ubicacion', -1)), "Desconocido")
+            }
+            return decoded
+
+        except Exception as e:
+            print(f"Error decodificando notación CMU: {e}")
+            return {
+                'configuracion': 'Error',
+                'movimiento': 'Error',
+                'ubicacion': 'Error'
+            }
 
     def descifrar(self, valor_cifrado, indice, metodo, cifrador):
         """Descifra un solo dígito CMU."""

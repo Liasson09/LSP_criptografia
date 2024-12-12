@@ -8,7 +8,7 @@ from gesture_detection import GestureDetector
 from traductor_senas import TraductorSenas
 from cmu_decoder import CMUDecoder
 import logging
-import time
+
 
 class SignLanguageApp:
     def __init__(self, root):
@@ -253,26 +253,29 @@ class SignLanguageApp:
     def _obtener_notacion_cmu(self, gesture):
         """Obtiene la notación CMU para un gesto usando el CMUDecoder."""
         try:
-            # Inicializar un diccionario de notación
-            notacion = {
-                'configuracion': None,
-                'movimiento': None,
-                'ubicacion': None
+            # Diccionario con las señas predefinidas desde el CMUDecoder
+            señas_predefinidas = {
+                "hoy": (3, 7, 3),
+                "en_la_manana": (1, 8, 7),
+                "tomar": (3, 3, 10),
+                "cafe": (6, 4, 4)
             }
 
-            # Buscar coincidencias en cada categoría
-            for categoria in ['configuracion', 'movimiento', 'ubicacion']:
-                for codigo, descripcion in getattr(self.cmu_decoder, f"{categoria}_labels").items():
-                    if gesture.lower() in descripcion.lower():
-                        notacion[categoria] = descripcion
-                        break
-
-            # Verificar si se encontraron todas las categorías
-            if all(notacion.values()):
-                return notacion
+            # Verificar si el gesto está en las señas predefinidas
+            if gesture in señas_predefinidas:
+                tupla_notacion = señas_predefinidas[gesture]
+                notacion = {
+                    'configuracion': str(tupla_notacion[0]),
+                    'movimiento': str(tupla_notacion[1]),
+                    'ubicacion': str(tupla_notacion[2])
+                }
             else:
-                self.logger.warning(f"No se pudo encontrar notación completa para el gesto: {gesture}")
+                # Si no es un gesto predefinido, devolver None
                 return None
+
+            # Decodificar la notación
+            notacion_decodificada = self.cmu_decoder.decode_notation(notacion)
+            return notacion_decodificada
 
         except Exception as e:
             self.logger.error(f"Error obteniendo notación CMU: {e}")
@@ -358,21 +361,19 @@ class SignLanguageApp:
     def _notation_to_tuple(self, notation):
         """Convierte la notación de texto a una tupla numérica."""
         try:
-            configuracion_num = next(
-                (codigo for codigo, desc in self.cmu_decoder.configuracion_labels.items()
-                 if desc == notation['configuracion']), None)
-            movimiento_num = next(
-                (codigo for codigo, desc in self.cmu_decoder.movimiento_labels.items()
-                 if desc == notation['movimiento']), None)
-            ubicacion_num = next(
-                (codigo for codigo, desc in self.cmu_decoder.ubicacion_labels.items()
-                 if desc == notation['ubicacion']), None)
+            # Encontrar la clave numérica correspondiente a cada valor de notación
+            config_key = next(key for key, value in self.cmu_decoder.configuracion_labels.items()
+                              if value == notation['configuracion'])
+            mov_key = next(key for key, value in self.cmu_decoder.movimiento_labels.items()
+                           if value == notation['movimiento'])
+            loc_key = next(key for key, value in self.cmu_decoder.ubicacion_labels.items()
+                           if value == notation['ubicacion'])
 
-            if all([configuracion_num, movimiento_num, ubicacion_num]):
-                return (int(configuracion_num), int(movimiento_num), int(ubicacion_num))
-            return None
+            # Convertir a enteros
+            return (int(config_key), int(mov_key), int(loc_key))
+
         except Exception as e:
-            self.logger.error(f"Error convirtiendo notación: {e}")
+            self.logger.error(f"Error convirtiendo notación a tupla: {e}")
             return None
 
     def _tuple_to_notation(self, tupla):
@@ -446,42 +447,6 @@ class SignLanguageApp:
 
         except Exception as e:
             self.logger.error(f"Error dibujando etiqueta: {e}")
-
-    def _obtener_notacion_cmu(self, gesture):
-        """Obtiene la notación CMU para un gesto predefinido."""
-        try:
-            # Diccionario de señas predefinidas con su notación CMU
-            señas_predefinidas = {
-                'hoy': (3, 7, 3),
-                'en la mañana': (1, 8, 7),
-                'tomé': (3, 3, 10),
-                'café': (6, 4, 4)
-            }
-
-            # Convertir el gesto a minúsculas para coincidencia insensible a mayúsculas
-            gesture_lower = gesture.lower()
-
-            # Verificar si el gesto está en las señas predefinidas
-            if gesture_lower in señas_predefinidas:
-                # Obtener la tupla de notación CMU
-                notacion_tupla = señas_predefinidas[gesture_lower]
-
-                # Convertir la tupla a notación de texto usando los labels de CMUDecoder
-                notacion = {
-                    'configuracion': self.cmu_decoder.configuracion_labels.get(str(notacion_tupla[0]), 'Desconocido'),
-                    'movimiento': self.cmu_decoder.movimiento_labels.get(str(notacion_tupla[1]), 'Desconocido'),
-                    'ubicacion': self.cmu_decoder.ubicacion_labels.get(str(notacion_tupla[2]), 'Desconocido')
-                }
-
-                return notacion
-
-            # Si el gesto no está en las señas predefinidas
-            self.logger.warning(f"No se pudo encontrar notación completa para el gesto: {gesture}")
-            return None
-
-        except Exception as e:
-            self.logger.error(f"Error obteniendo notación CMU: {e}")
-            return None
 
 if __name__ == "__main__":
     root = tk.Tk()
