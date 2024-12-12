@@ -34,7 +34,7 @@ class GestureDetector:
         self.last_prediction_time = time.time()
         self.prediction_cooldown = 0.5
 
-        # Dimensiones de la imagen (ajustar según tu necesidad)
+        # Dimensiones de la imagen
         self.image_width = 640
         self.image_height = 480
 
